@@ -299,11 +299,7 @@ class AISimulator:
             },
             "micro_steps": micro_steps,
             "strategy": strategy,
-            "encouragement": {
-                "main": encouragement,
-                "completion": self._get_completion_encouragement(),
-                "progress_based": self._get_progress_encouragements()
-            },
+            "encouragement": encouragement,
             "personalized_suggestions": personalized_suggestions,
             "adhd_specific": {
                 "focus_tips": self._get_adhd_focus_tips(mood),
@@ -1026,22 +1022,65 @@ class AISimulator:
     def _generate_encouragement(self, mood: str, difficulty: int, target_task: str) -> str:
         """生成鼓励语"""
         
-        # 根据情绪选择鼓励语
-        if mood in self.emotion_responses:
-            encouragements = self.emotion_responses[mood]["encouragements"]
-            encouragement = random.choice(encouragements)
+            # 基础鼓励语库
+        encouragement_library = {
+            "energetic": [
+                "趁现在精力充沛，快速开始吧！",
+                "你的能量是宝贵的资源，好好利用它完成这个任务！",
+                "精力旺盛的时候最适合挑战！"
+            ],
+            "tired": [
+                "累的时候启动最难，先做最小的一件事就好",
+                "完成一个小步骤就可以休息，给自己一点关怀",
+                "疲惫时的小进步比平时的巨大努力更可贵"
+            ],
+            "anxious": [
+                "焦虑是身体在保护你，感谢它然后继续前进",
+                "不需要完美，完成比完美重要",
+                "你已经迈出了最困难的第一步"
+            ],
+            "procrastinating": [
+                "拖延不是懒惰，是任务需要拆解得更小",
+                "先开始5分钟，然后可以随时停止",
+                "你已经意识到需要改变，这很了不起"
+            ],
+            "overwhelmed": [
+                "一次只做一件事，你已经做得很好了",
+                "任务看起来大，我们把它拆成小块就容易了",
+                "你已经走了这么远，继续前进一小步"
+            ],
+            "neutral": [
+                "平稳的情绪是开始任务的好状态",
+                "让我们建立一个简单的启动惯例",
+                "你可以做到的！从小步骤开始"
+            ]
+        }
+        
+        # 根据情绪选择
+        if mood in encouragement_library:
+            base_encouragement = random.choice(encouragement_library[mood])
         else:
-            encouragement = "你可以做到的！从小步骤开始。"
+            base_encouragement = "你可以做到的！从小步骤开始。"
         
-        # 根据难度调整
-        if difficulty >= 8:
-            encouragement = f"面对高难度任务，{encouragement} 相信你可以找到适合自己的节奏。"
+        # 根据难度添加额外鼓励
+        if difficulty >= 9:
+            difficulty_msg = "这个任务对你来说很有挑战性，但相信你能够克服！"
+        elif difficulty >= 7:
+            difficulty_msg = "任务有一定难度，慢慢来，一步一个脚印。"
+        elif difficulty >= 5:
+            difficulty_msg = "中等难度的任务，保持专注就能完成。"
+        else:
+            difficulty_msg = "这个任务对你来说应该不难，快速完成它吧！"
         
-        # 个性化
-        if target_task:
-            encouragement = encouragement.replace("任务", f"'{target_task[:15]}...'")
+        # 个性化任务名称
+        task_short = target_task
+        if len(target_task) > 20:
+            task_short = target_task[:20] + "..."
         
-        return encouragement
+        # 组合鼓励语
+        final_encouragement = f"{base_encouragement} {difficulty_msg} 开始你的'{task_short}'任务吧！"
+        
+        return final_encouragement
     
     def _generate_personalized_suggestions(self, current_state: str, mood: str, task_type: Dict) -> List[str]:
         """生成个性化建议"""
