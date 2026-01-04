@@ -1,9 +1,5 @@
-"""
-ai_engine.py - 统一的AI分析引擎
-使用智能模拟AI提供完整的任务分析功能
-完全离线，无需网络，无需API密钥
-"""
-
+import openai
+import streamlit as st  # 用于安全读取密钥
 import sys
 import os
 sys.path.append(os.path.dirname(__file__))
@@ -24,91 +20,100 @@ class TaskAnalyzer:
         self.ai = AISimulator(name="TaskSpark AI")
         print(f"🤖 {self.ai.name} v{self.ai.version} 已就绪")
     
-    def analyze_task(self, current_state: str, target_task: str, mood: str, difficulty: int) -> Dict[str, Any]:
+    def analyze_task_with_api(current_state: str, target_task: str, mood: str, difficulty: int) -> dict:
         """
-        分析任务并返回结果
+        使用OpenRouter API调用DeepSeek模型进行智能分析
+        """
+        # 1. 从Streamlit Secrets安全地读取API密钥
+        # 注意：在本地测试时，需要在`.streamlit/secrets.toml`文件中配置同样的键值对
+        api_key = st.secrets.get("OPENROUTER_API_KEY")
         
-        Args:
-            current_state: 当前状态
-            target_task: 目标任务
-            mood: 当前情绪
-            difficulty: 难度评分1-10
-            
-        Returns:
-            分析结果字典
+        if not api_key:
+            return {"error": "API密钥未配置。请检查Streamlit Secrets设置。"}
+
+        # 2. 初始化OpenAI客户端，但指向OpenRouter的终点
+        client = openai.OpenAI(
+            api_key=api_key,
+            base_url="https://openrouter.ai/api/v1"  # 关键：使用OpenRouter的地址
+        )
+
+        # 3. 构建一个强大的系统提示词，引导AI扮演专业角色
+        system_prompt = """你是 TaskSpark，一位专为ADHD及存在执行功能困难的用户设计的资深教练。你温暖、耐心、富有洞察力且绝不评判。你的核心专长是帮助用户克服“任务启动困难”，通过深度结合用户**当前的具体处境**和**任务的具体细节**，将看似令人逃避的任务拆解为一系列可执行的微小步骤。
+
+        你的工作流程如下：
+        1. **深度情境分析**：仔细阅读用户描述的**当前状态**（如所处环境、情绪、身体感受、周边干扰）和**想完成的任务**。分析是哪些具体因素（如任务模糊、感知到的难度、情绪阻力、环境干扰）导致了当前的“卡住”状态。
+        2. **结构化回应**：你的回答必须严格遵循以下结构，且每一步都必须紧密源自上一步的分析，形成连贯的支撑：
+
+            **1. 共情与锚定**
+            *   用一两句话精准反映你对他们当前处境和情绪的理解，表明你看到了他们“卡住”的独特原因。
+            *   **明确锚定**：清晰复述他们想要完成的具体任务。
+
+            **2. 核心破局点**
+            *   基于你的情境分析，指出从“当前状态”过渡到“任务启动”**最关键、最微小的一个心理或行为转换**。这应是打破僵局的唯一支点（例如：“从思考‘必须完成全部’转换为‘只需定义清楚第一步是什么’”）。
+
+            **3. “纳米级”第一步**
+            *   设计一个**极其简单、几乎无阻力、30秒内就能完成**的物理或心理动作。这一步必须直接服务于“核心破局点”，并天然引导向下一个步骤（例如：不是“开始写报告”，而是“打开文档，把标题打出来”）。
+
+            **4. 渐进路线图**
+            *   列出紧接第一步后的**2-3个自然衔接的小步骤**。每个步骤都应：
+                *   **具体**：明确做什么。
+                *   **微小**：预计1-5分钟内可完成。
+                *   **有逻辑**：像搭积木一样，从前一步自然引出下一步。
+            *   在最后一步后，提示用户届时可以与你一起规划下一阶段。
+
+            **5. 能量适配贴士**
+            *   根据用户最初描述的情绪状态，提供一个非常简单、用于**调整自身状态或环境**的建议，以支持他们执行上述步骤（例如：如果用户感到 overwhelm，可以说：“在开始第一步前，可以先做三次缓慢的深呼吸，只关注呼气。”）。
+
+        **语言风格**：使用第二人称“你”，语气亲切如一位懂你的朋友。直接给出建议，避免说教。使用鼓励性、减轻压力的词汇（如“可以”、“试试看”、“哪怕只是……”）。"""
+
+        # 4. 构建用户请求，整合所有输入信息
+        user_prompt = f"""
+        ## 用户状态
+        - **当前在做**：{current_state}
+        - **想要开始**：{target_task}
+        - **当下情绪**：{mood}
+        - **启动难度自评**：{difficulty}/10 （10为最难）
+
+        请根据以上信息，生成你的分析。
         """
+
         try:
-            # 调用智能AI分析
-            result = self.ai.analyze_task(current_state, target_task, mood, difficulty)
+            # 5. 调用API
+            response = client.chat.completions.create(
+                model="nex-agi/deepseek-v3.1-nex-n1:free",  
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                max_tokens=1000,  # 控制回复长度，可根据需要调整
+                temperature=0.8,  # 控制创造性（0.0较确定，1.0较随机）
+            )
             
-            # 添加分析元数据
-            result["_meta"] = {
-                "ai_model": "smart-simulator",
-                "ai_version": self.ai.version,
-                "analysis_time": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "offline_mode": True,
-                "confidence": result.get("meta", {}).get("confidence_score", 0.85)
+            # 6. 提取和返回结果
+            ai_content = response.choices[0].message.content
+            
+            # 你可以根据原有analyze_task函数返回的格式来构建返回字典，保持兼容性
+            return {
+                "task_analysis": {
+                    "key_insight": ai_content,  # 或者你可以尝试从ai_content中解析出更结构化的信息
+                    "source": "DeepSeek-via-OpenRouter"
+                },
+                "micro_steps": [],  # 如果需要，可以让AI在回复中结构化输出，你这里再解析
+                "encouragement": "AI已为你生成专属策略，请看上方分析。",
+                "_meta": {
+                    "ai_model": "nex-agi/deepseek-v3.1-nex-n1:free",
+                    "api_used": True
+                }
             }
             
-            # 标准化输出格式
-            standardized_result = {
-                "task_analysis": result.get("task_analysis", {}),
-                "micro_steps": result.get("micro_steps", []),
-                "strategy": result.get("strategy", {}),
-                "encouragement": result.get("encouragement", {}).get("main", "你可以做到的！"),
-                "personalized_suggestions": result.get("personalized_suggestions", []),
-                "adhd_specific": result.get("adhd_specific", {}),
-                "_meta": result["_meta"]
-            }
-            
-            return standardized_result
-            
+        except openai.APIConnectionError as e:
+            return {"error": f"网络连接失败: {e}"}
+        except openai.APIError as e:
+            return {"error": f"OpenRouter API返回错误: {e}"}
         except Exception as e:
-            print(f"AI分析出错: {e}")
-            return self._get_fallback_response(current_state, target_task, mood, difficulty)
+            return {"error": f"未知错误: {e}"}
     
-    def _get_fallback_response(self, current_state: str, target_task: str, mood: str, difficulty: int) -> Dict[str, Any]:
-        """备用响应（当AI模拟器出错时）"""
-        return {
-            "task_analysis": {
-                "task_type": "通用任务",
-                "difficulty_level": "中等",
-                "mental_blocks": ["启动困难", "分心易", "能量不足"],
-                "key_insight": "从小步骤开始建立动量",
-                "estimated_time": "15-25分钟"
-            },
-            "micro_steps": [
-                {"step": "准备好必要的工具材料", "time": "2分钟", "tip": "只是准备，不需要开始"},
-                {"step": "设置5分钟倒计时", "time": "1分钟", "tip": "告诉自己只需坚持5分钟"},
-                {"step": "从最简单的部分开始", "time": "5分钟", "tip": "完成后可以随时停止"},
-                {"step": "完成后给自己一个奖励", "time": "2分钟", "tip": "庆祝小成就"}
-            ],
-            "strategy": {
-                "name": "5分钟启动法",
-                "description": "先做5分钟，然后可以决定是否继续",
-                "first_step": "准备好需要的工具",
-                "key_principle": "完成比完美重要"
-            },
-            "encouragement": "你已经迈出了第一步，这很了不起！",
-            "personalized_suggestions": [
-                "一次只专注于一个步骤",
-                "完成后给自己一个小奖励",
-                "记录今天的进步"
-            ],
-            "adhd_specific": {
-                "focus_tips": ["使用计时器", "一次只做一件事", "定期休息"],
-                "environment_tips": ["整理工作区域", "确保良好照明", "准备必要工具"],
-                "reward_ideas": ["休息10分钟", "喝喜欢的饮料", "吃点零食"]
-            },
-            "_meta": {
-                "ai_model": "fallback",
-                "ai_version": "1.0",
-                "analysis_time": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "offline_mode": True,
-                "confidence": 0.7,
-                "note": "使用备用方案，AI模拟器可能遇到问题"
-            }
-        }
+    
     
     def get_progress_encouragement(self, progress: int) -> str:
         """根据进度获取鼓励语"""
