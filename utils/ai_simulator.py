@@ -654,98 +654,230 @@ class AISimulator:
         return random.choice(default_steps)
     
     def _generate_micro_steps(self, task: str, task_type: Dict, difficulty: int, mood: str) -> List[Dict[str, str]]:
-        """生成微步骤 - 改进版，更贴合用户描述"""
+        """生成微步骤 - 完全重写，更智能个性化"""
         
-        # 解析用户任务描述中的具体元素
         task_lower = task.lower()
-        task_details = {
-            "has_deadline": any(word in task_lower for word in ["今天", "明天", "截止", "之前"]),
-            "has_specific_goal": any(word in task_lower for word in ["写完", "完成", "做好", "整理好"]),
-            "is_creative": any(word in task_lower for word in ["写", "画", "设计", "创作"]),
-            "is_analytical": any(word in task_lower for word in ["分析", "计算", "思考", "解决"]),
-            "is_physical": any(word in task_lower for word in ["整理", "打扫", "收拾", "运动"])
-        }
         
-        # 基础模板选择
-        base_template = "通用"
-        if task_type["name"] in self.microstep_templates:
-            base_template = task_type["name"]
+        # 深度分析用户的任务描述
+        task_words = task_lower.split()
         
-        # 根据任务特征调整基础步骤
-        base_steps = self.microstep_templates[base_template].copy()
+        # 根据不同的任务类型生成完全不同的步骤
+        steps = []
         
-        # 个性化调整
-        personalized_steps = []
+        # ========== 学习类任务 ==========
+        if task_type["name"] == "学习":
+            # 提取学习的具体内容
+            if any(word in task_lower for word in ["复习", "考试", "期末", "测验"]):
+                steps = [
+                    {"step": "拿出课本和笔记本，放在桌上", "time": "2分钟", "tip": "只是拿出来，不看内容"},
+                    {"step": "打开书到第一页，浏览目录", "time": "3分钟", "tip": "了解整体结构"},
+                    {"step": "找出最重要的章节或概念", "time": "5分钟", "tip": "标记重点"},
+                    {"step": "从最简单的概念开始复习", "time": "15分钟", "tip": "不求全部掌握"},
+                    {"step": "写下一个简短的总结或提纲", "time": "5分钟", "tip": "巩固记忆"},
+                    {"step": "做3-5道练习题", "time": "10分钟", "tip": "测试理解程度"},
+                    {"step": "休息5分钟，回顾刚才的内容", "time": "5分钟", "tip": "让大脑休息"}
+                ]
+            elif any(word in task_lower for word in ["读书", "看书", "阅读"]):
+                steps = [
+                    {"step": "找到要读的书或文章", "time": "1分钟", "tip": "只是找到它"},
+                    {"step": "找一个舒适的阅读位置", "time": "2分钟", "tip": "调整光线和姿势"},
+                    {"step": "设定阅读目标：10页或15分钟", "time": "1分钟", "tip": "小目标更容易完成"},
+                    {"step": "开始阅读，不做笔记", "time": "15分钟", "tip": "沉浸式阅读"},
+                    {"step": "读完暂停，回想刚才的内容", "time": "3分钟", "tip": "检查理解"},
+                    {"step": "写下1-2个关键点或问题", "time": "3分钟", "tip": "加深印象"}
+                ]
+            else:
+                steps = [
+                    {"step": "整理学习资料和工具", "time": "3分钟", "tip": "准备工作空间"},
+                    {"step": "关闭手机通知，设置专注时间", "time": "2分钟", "tip": "减少干扰"},
+                    {"step": "明确今天的学习目标", "time": "2分钟", "tip": "具体可测量"},
+                    {"step": "从最容易的部分开始", "time": "20分钟", "tip": "建立信心"},
+                    {"step": "记录学习进度和收获", "time": "3分钟", "tip": "可视化成果"},
+                    {"step": "计划下一步学习内容", "time": "2分钟", "tip": "保持连续性"}
+                ]
         
-        # 第一步总是根据当前状态定制
-        if "床" in task_lower or "躺" in task_lower:
-            personalized_steps.append("慢慢坐起来，双脚放在地上，感受地面支撑")
-        elif "手机" in task_lower or "刷" in task_lower:
-            personalized_steps.append("把手机屏幕朝下放在够不到的地方")
+        # ========== 整理类任务 ==========
+        elif task_type["name"] == "整理":
+            # 提取整理的具体内容
+            if any(word in task_lower for word in ["房间", "卧室", "客厅"]):
+                steps = [
+                    {"step": "准备3个袋子：垃圾、捐赠、保留", "time": "2分钟", "tip": "分类准备"},
+                    {"step": "从门口开始，清理1平方米区域", "time": "5分钟", "tip": "从最容易的地方开始"},
+                    {"step": "处理明显的垃圾和空包装", "time": "5分钟", "tip": "快速见效"},
+                    {"step": "整理桌面或床面", "time": "10分钟", "tip": "创造成就感"},
+                    {"step": "分类整理一个抽屉或柜子", "time": "10分钟", "tip": "完成一个小空间"},
+                    {"step": "擦拭表面，调整物品摆放", "time": "5分钟", "tip": "让空间焕然一新"},
+                    {"step": "欣赏整理成果，拍照记录", "time": "1分钟", "tip": "庆祝进步"}
+                ]
+            elif any(word in task_lower for word in ["桌子", "书桌", "办公桌"]):
+                steps = [
+                    {"step": "清空桌面所有物品", "time": "2分钟", "tip": "从零开始"},
+                    {"step": "擦拭桌面，清洁表面", "time": "2分钟", "tip": "干净的画布"},
+                    {"step": "分类物品：常用、偶尔用、不用", "time": "5分钟", "tip": "优先级排序"},
+                    {"step": "只放回必要的物品", "time": "5分钟", "tip": "保持简洁"},
+                    {"step": "整理线缆，隐藏杂乱", "time": "3分钟", "tip": "视觉清爽"},
+                    {"step": "调整到最佳工作角度", "time": "1分钟", "tip": "人体工程学"}
+                ]
+            else:
+                steps = [
+                    {"step": "准备收纳工具和清洁用品", "time": "3分钟", "tip": "工具在手边"},
+                    {"step": "选择一个区域开始整理", "time": "1分钟", "tip": "明确起点"},
+                    {"step": "先扔掉明显的垃圾", "time": "5分钟", "tip": "减负"},
+                    {"step": "分类物品，决定去留", "time": "10分钟", "tip": "做决策"},
+                    {"step": "归位物品，整理收纳", "time": "10分钟", "tip": "系统化"},
+                    {"step": "清洁表面，完成整理", "time": "5分钟", "tip": "收尾工作"}
+                ]
+        
+        # ========== 工作类任务 ==========
+        elif task_type["name"] == "工作":
+            # 提取工作的具体内容
+            if any(word in task_lower for word in ["报告", "文档", "写", "文章"]):
+                steps = [
+                    {"step": "打开文档或创建新文件", "time": "1分钟", "tip": "只是打开，不写内容"},
+                    {"step": "写下标题和3个要点", "time": "3分钟", "tip": "建立框架"},
+                    {"step": "设置25分钟专注写作时间", "time": "1分钟", "tip": "番茄钟"},
+                    {"step": "自由写作，不自我审查", "time": "25分钟", "tip": "完成初稿"},
+                    {"step": "休息5分钟，站起来活动", "time": "5分钟", "tip": "防止疲劳"},
+                    {"step": "回顾内容，做简单修改", "time": "10分钟", "tip": "完善但不完美"},
+                    {"step": "保存文档，记录进度", "time": "2分钟", "tip": "任务完成"}
+                ]
+            elif any(word in task_lower for word in ["邮件", "回复", "处理"]):
+                steps = [
+                    {"step": "打开邮箱或邮件应用", "time": "1分钟", "tip": "只是打开"},
+                    {"step": "按优先级排序邮件", "time": "2分钟", "tip": "从最重要的开始"},
+                    {"step": "设置20分钟处理时间", "time": "1分钟", "tip": "时间限制"},
+                    {"step": "快速回复紧急邮件", "time": "10分钟", "tip": "批量处理"},
+                    {"step": "标记需要后续处理的邮件", "time": "3分钟", "tip": "分类"},
+                    {"step": "归档已处理的邮件", "time": "2分钟", "tip": "清理收件箱"},
+                    {"step": "关闭邮箱，清空工作区", "time": "1分钟", "tip": "任务结束"}
+                ]
+            else:
+                steps = [
+                    {"step": "准备必要的工具和文件", "time": "3分钟", "tip": "准备工作"},
+                    {"step": "列出今天最重要的3件事", "time": "2分钟", "tip": "明确优先级"},
+                    {"step": "从最容易的开始做", "time": "25分钟", "tip": "建立动力"},
+                    {"step": "休息5分钟，补充水分", "time": "5分钟", "tip": "保持精力"},
+                    {"step": "继续下一个任务", "time": "25分钟", "tip": "保持专注"},
+                    {"step": "记录完成情况和问题", "time": "5分钟", "tip": "复盘"}
+                ]
+        
+        # ========== 其他任务类型 ==========
+        elif task_type["name"] == "创作":
+            steps = [
+                {"step": "准备好创作工具和材料", "time": "3分钟", "tip": "物质准备"},
+                {"step": "设置一个简单的创作主题", "time": "2分钟", "tip": "明确方向"},
+                {"step": "自由创作，不受规则限制", "time": "15分钟", "tip": "释放创造力"},
+                {"step": "保存作品，命名文件", "time": "1分钟", "tip": "记录成果"},
+                {"step": "分享给一个信任的人", "time": "2分钟", "tip": "获得反馈"}
+            ]
+        
+        elif task_type["name"] == "健康":
+            if any(word in task_lower for word in ["锻炼", "运动", "健身"]):
+                steps = [
+                    {"step": "换上运动服装和鞋子", "time": "3分钟", "tip": "仪式感"},
+                    {"step": "简单热身，活动关节", "time": "5分钟", "tip": "防止受伤"},
+                    {"step": "选择喜欢的运动方式", "time": "1分钟", "tip": "保持兴趣"},
+                    {"step": "设定10-15分钟运动目标", "time": "1分钟", "tip": "可完成"},
+                    {"step": "开始运动，注意呼吸", "time": "15分钟", "tip": "享受过程"},
+                    {"step": "拉伸放松，补充水分", "time": "5分钟", "tip": "恢复身体"},
+                    {"step": "记录运动感受和进度", "time": "2分钟", "tip": "建立习惯"}
+                ]
+            else:
+                steps = [
+                    {"step": "准备健康食品或水", "time": "3分钟", "tip": "身体燃料"},
+                    {"step": "找个安静舒适的地方", "time": "2分钟", "tip": "环境准备"},
+                    {"step": "做5次深呼吸放松", "time": "1分钟", "tip": "身心连接"},
+                    {"step": "关注身体感受和需求", "time": "5分钟", "tip": "自我觉察"},
+                    {"step": "执行健康活动", "time": "10分钟", "tip": "具体行动"},
+                    {"step": "记录感受和收获", "time": "2分钟", "tip": "强化行为"}
+                ]
+        
+        elif task_type["name"] == "社交":
+            steps = [
+                {"step": "明确要联系的人和目的", "time": "2分钟", "tip": "清晰目标"},
+                {"step": "准备想说的3个要点", "time": "3分钟", "tip": "减少焦虑"},
+                {"step": "选择合适的联系时间", "time": "1分钟", "tip": "时机重要"},
+                {"step": "开始联系，保持自然", "time": "10分钟", "tip": "真诚沟通"},
+                {"step": "倾听对方，积极回应", "time": "10分钟", "tip": "双向交流"},
+                {"step": "结束对话，约定后续", "time": "2分钟", "tip": "善始善终"},
+                {"step": "记录交流收获和感受", "time": "2分钟", "tip": "社交学习"}
+            ]
+        
+        # ========== 默认任务 ==========
         else:
-            personalized_steps.append("调整姿势，做3次深呼吸")
+            # 基于用户描述的个性化默认步骤
+            if len(task_words) > 2:  # 如果描述比较详细
+                steps = [
+                    {"step": f"准备开始{task_type['name']}任务的必要物品", "time": "3分钟", "tip": "物质准备"},
+                    {"step": f"拆分{task}为3个小部分", "time": "2分钟", "tip": "任务分解"},
+                    {"step": f"从{task_words[0]}开始", "time": "10分钟", "tip": "专注第一"},
+                    {"step": "检查进度，调整方法", "time": "3分钟", "tip": "灵活应对"},
+                    {"step": "继续下一个部分", "time": "10分钟", "tip": "保持动量"},
+                    {"step": "完成收尾工作", "time": "5分钟", "tip": "善始善终"},
+                    {"step": "记录完成情况和感受", "time": "2分钟", "tip": "经验积累"}
+                ]
+            else:
+                steps = [
+                    {"step": "准备必要的工具和环境", "time": "3分钟", "tip": "准备工作"},
+                    {"step": "明确任务的具体目标", "time": "2分钟", "tip": "清晰方向"},
+                    {"step": "设置25分钟专注时间", "time": "1分钟", "tip": "时间限制"},
+                    {"step": "开始执行，保持专注", "time": "25分钟", "tip": "沉浸其中"},
+                    {"step": "休息5分钟，评估进展", "time": "5分钟", "tip": "保持节奏"},
+                    {"step": "完成后续部分或收尾", "time": "15分钟", "tip": "持续推进"},
+                    {"step": "庆祝完成，记录成就", "time": "2分钟", "tip": "强化成功"}
+                ]
         
-        # 根据任务类型添加具体步骤
-        if task_details["is_creative"]:
-            personalized_steps.extend([
-                "准备创作工具（纸笔/软件）",
-                "设定一个小目标：先完成粗糙的草稿",
-                "设置25分钟创作时间，不自我评判"
-            ])
-        elif task_details["is_analytical"]:
-            personalized_steps.extend([
-                "明确要解决的核心问题",
-                "收集必要的信息和数据",
-                "从一个简单的角度开始分析"
-            ])
-        elif task_details["is_physical"]:
-            personalized_steps.extend([
-                "准备必要的工具和材料",
-                "从离你最近的区域开始",
-                "设置15分钟定时，专注于一个区域"
-            ])
+        # ========== 根据难度和情绪调整 ==========
+        adjusted_steps = []
         
-        # 根据情绪调整步骤
-        if mood == "anxious":
-            personalized_steps.insert(1, "写下3个最担心的具体问题")
-            personalized_steps.insert(2, "为每个担心想一个简单的应对方案")
-        elif mood == "tired":
-            personalized_steps.insert(1, "喝一杯水，补充水分")
-            personalized_steps.insert(2, "做简单的伸展运动激活身体")
-        elif mood == "procrastinating":
-            personalized_steps.insert(1, "问自己：我在逃避什么具体的事情？")
-            personalized_steps.insert(2, "把那个具体的事情拆成更小的部分")
+        # 根据难度调整步骤数量
+        if difficulty <= 3:  # 简单任务
+            step_count = min(4, len(steps))
+            selected_steps = steps[:step_count]
+        elif difficulty <= 6:  # 中等任务
+            step_count = min(5, len(steps))
+            selected_steps = steps[:step_count]
+        elif difficulty <= 8:  # 较难任务
+            step_count = min(6, len(steps))
+            selected_steps = steps[:step_count]
+        else:  # 非常难任务
+            step_count = min(7, len(steps))
+            selected_steps = steps[:step_count]
+            # 为高难度任务添加鼓励步骤
+            if len(selected_steps) > 3:
+                selected_steps.insert(1, {"step": "深呼吸，告诉自己可以做到", "time": "1分钟", "tip": "心理准备"})
         
-        # 组合步骤
-        all_steps = personalized_steps + base_steps
-        
-        # 根据难度调整数量
-        if difficulty <= 3:
-            step_count = min(4, len(all_steps))
-            steps = all_steps[:step_count]
-        elif difficulty <= 7:
-            step_count = min(6, len(all_steps))
-            steps = all_steps[:step_count]
-        else:
-            step_count = min(8, len(all_steps))
-            steps = all_steps[:step_count]
-        
-        # 转换为标准格式
-        formatted_steps = []
-        for i, step in enumerate(steps, 1):
-            # 为每个步骤生成个性化提示
-            personalized_tip = self._generate_personalized_tip(step, i, task, mood, difficulty)
+        # 根据情绪调整步骤描述
+        for i, step in enumerate(selected_steps):
+            # 调整时间估计
+            if mood == "tired":
+                # 疲惫时给更多时间
+                step_time = step["time"]
+                if "分钟" in step_time:
+                    try:
+                        minutes = int(step_time.split("分钟")[0])
+                        adjusted_minutes = min(minutes * 1.5, 30)  # 增加50%时间
+                        step["time"] = f"{int(adjusted_minutes)}分钟"
+                    except:
+                        pass
             
-            formatted_steps.append({
-                "step": step,
-                "time": self._estimate_step_time(i, difficulty, mood),
-                "tip": personalized_tip,
-                "energy": self._estimate_step_energy(i, difficulty),
-                "priority": "高" if i <= 3 else "中",
-                "emotional_support": self._get_step_emotional_support(i, mood)
-            })
+            # 调整提示语
+            if mood == "anxious":
+                step["tip"] = f"{step.get('tip', '')} - 放松，一步一个脚印"
+            elif mood == "procrastinating":
+                step["tip"] = f"{step.get('tip', '')} - 开始比完成重要"
+            
+            # 添加能量等级
+            if i == 0:
+                step["energy"] = "低"
+            elif i <= 2:
+                step["energy"] = "中"
+            else:
+                step["energy"] = "高"
+            
+            adjusted_steps.append(step)
         
-        return formatted_steps
+        return adjusted_steps
     
     def _estimate_step_time(self, step_number: int, difficulty: int, mood: str) -> str:
         """估计步骤所需时间"""

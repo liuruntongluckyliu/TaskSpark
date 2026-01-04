@@ -210,10 +210,17 @@ def main():
             st.success("🎯 准备开始执行！")
             time.sleep(1)
             try:
-             st.switch_page("micro_steps.py")
-            except:
-            # 尝试其他路径
-             st.switch_page("./pages/micro_steps.py")
+            # 尝试多种路径
+                import os
+                if os.path.exists("pages/micro_steps.py"):
+                    st.switch_page("pages/micro_steps.py")
+                elif os.path.exists("micro_steps.py"):
+                    st.switch_page("micro_steps.py")
+                else:
+                    # 如果文件都不存在，显示错误
+                    st.error("找不到执行页面，请检查文件结构")
+            except Exception as e:
+                st.error(f"页面跳转失败: {e}")
     
     with col2:
         if st.button("🔄 重新分析", type="secondary", use_container_width=True):

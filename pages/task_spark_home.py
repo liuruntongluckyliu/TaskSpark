@@ -195,15 +195,11 @@ def difficulty_selector():
 def analyze_with_ai(current_state, target_task, mood, difficulty):
     """调用智能AI分析任务"""
     try:
-        # 导入AI引擎
         from utils.ai_engine import get_analyzer
         
-        # 获取分析器实例
         analyzer = get_analyzer()
         
-        # 显示分析状态
         with st.spinner("🤖 AI正在分析你的任务..."):
-            # 添加一点延迟让用户看到加载状态
             time.sleep(1)
             
             # 调用AI分析
@@ -214,21 +210,26 @@ def analyze_with_ai(current_state, target_task, mood, difficulty):
                 difficulty=difficulty
             )
             
-            # 显示分析来源
+            # 检查分析结果
+            if not analysis:
+                st.error("AI返回了空结果")
+                return None
+            
+            print(f"🎯 分析结果keys: {analysis.keys()}")
+            print(f"📊 微步骤数量: {len(analysis.get('micro_steps', []))}")
+            
             if analysis.get('_meta', {}).get('ai_model') == 'smart-simulator':
-                st.success("✅ 智能AI分析完成！")
+                st.success(f"✅ AI分析完成！生成了{len(analysis.get('micro_steps', []))}个个性化步骤")
             else:
                 st.info("🤖 AI分析完成！")
             
             return analysis
             
-    except ImportError as e:
-        st.error(f"无法加载AI模块: {str(e)}")
-        st.info("请确保已正确创建AI模块文件")
-        return None
     except Exception as e:
         st.error(f"AI分析失败: {str(e)}")
-        st.info("请稍后重试")
+        print(f"❌ 详细错误: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 # ==================== 保存历史记录 ====================
